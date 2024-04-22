@@ -8,9 +8,10 @@
 #include <iostream>
 #include <string.h>
 
-char* empty_string = nullptr;
+class StringPtr {
+    char* empty_value = (char*)1;
+    mutable char* ptr = empty_value;
 
-struct StringPtr {
 public:
     StringPtr(const char* value)
         : ptr(strdup(value))
@@ -18,62 +19,65 @@ public:
     }
 
     StringPtr() = default;
-    StringPtr(StringPtr& other)
-        : ptr(other.ptr)
-        , shared(true)
+    StringPtr(const StringPtr& other)
     {
-        if (other.ptr != empty_string) {
-            shared = true;
-            other.shared = true;
-        }
+        other.make_shared();
+        ptr = other.ptr;
     }
 
     // move constructor
     StringPtr(StringPtr&& other)
+        : StringPtr()
     {
-        *this = std::move(other);
+        swap(*this, other);
     }
 
     // copy assignment operators (move assignment)
     StringPtr& operator=(StringPtr&& other)
     {
-        freeIfNotShared();
-        ptr = other.ptr;
-        shared = other.shared;
-        other.ptr = empty_string;
+        swap(*this, other);
         return *this;
     }
 
-    StringPtr& operator=(char* value)
+    StringPtr& operator=(const StringPtr& other)
     {
-        freeIfNotShared();
-        ptr = value;
-        shared = false;
-        return *this;
-    }
-
-    StringPtr& operator=(const char* value)
-    {
-        freeIfNotShared();
-        ptr = strdup(value);
-        shared = false;
+        if (&other != this) {
+            StringPtr tmp = other;
+            swap(*this, tmp);
+        }
         return *this;
     }
 
     void freeIfNotShared()
     {
-        if (!shared && ptr != empty_string) {
+        if (!shared()) {
             LOG("\nFree string: ", ptr);
             free(ptr);
         }
     }
-    
+
     ~StringPtr()
     {
         freeIfNotShared();
     }
-    char* ptr = empty_string;
-    bool shared = false;
+
+    char* get() const
+    {
+        return (char*)((size_t)ptr & ~1);
+    }
+    bool shared() const
+    {
+        return ((size_t)ptr & 1);
+    }
+    void make_shared() const
+    {
+        ptr = (char*)((size_t)ptr | 1);
+    }
+
+    friend void swap(StringPtr& a, StringPtr& b)
+    {
+        std::swap(a.ptr, b.ptr);
+    }
 };
 
 /*
@@ -82,6 +86,6 @@ public:
 std::ostream& operator<<(std::ostream& os, const StringPtr& sp)
 {
     os << "StringPtr of "
-       << "\"" << sp.ptr << "\", " << (sp.shared ? "shared" : "not shared");
+       << "\"" << sp.get() << "\", " << (sp.shared() ? "shared" : "not shared");
     return os;
 }

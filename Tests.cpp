@@ -17,18 +17,18 @@ void check_initialization()
 {
     StringPtr defaultPtr;
     StringPtr defaultPtr2;
-    check(defaultPtr.ptr == empty_string, "Default ptr must point to null_object");
-    check(!defaultPtr.shared, "Default ptr must not be shared");
+    check(defaultPtr.get() == nullptr, "Default ptr must point to null_object");
+    check(defaultPtr.shared(), "Default ptr must be shared");
 
     const char* str = "Initialized from string";
     StringPtr strPtr = str;
-    check(!strPtr.shared, "Must be not shared");
-    check(strcmp(strPtr.ptr, str) == 0, "Points wrong str");
+    check(!strPtr.shared(), "Must be not shared");
+    check(strcmp(strPtr.get(), str) == 0, "Points wrong str");
 
     StringPtr fromPtr = strPtr;
-    check(fromPtr.shared, "Must be shared");
-    check(strPtr.shared, "Must be shared");
-    check(strcmp(fromPtr.ptr, str) == 0, "Points wrong str");
+    check(fromPtr.shared(), "Must be shared");
+    check(strPtr.shared(), "Must be shared");
+    check(strcmp(fromPtr.get(), str) == 0, "Points wrong str");
 
     std::cout << "\nInitialization test passed!";
 }
@@ -39,16 +39,20 @@ void check_assignment()
     const char* str2 = "check_assignment_2";
 
     StringPtr p1 = str1;
+    p1 = p1;
+    check(!p1.shared(), "Self-assignment must not make shared!");
+    check(strcmp(p1.get(), str1) == 0, "Self-assignment must not change value!");
+
     StringPtr p2 = p1;
 
-    check(p2.ptr == p1.ptr);
-    check(p1.shared);
-    check(p2.shared);
+    check(p2.get() == p1.get());
+    check(p1.shared());
+    check(p2.shared());
 
     p1 = str2;
     p1 = "check_assignment_3_literal";
-    check(!p1.shared);
-    check(p2.shared);
+    check(!p1.shared());
+    check(p2.shared());
 
     std::cout << "\nAssignment test passed!";
 }
@@ -68,7 +72,7 @@ int partition(StringPtr ptrs[], int start, int end)
     int pivotIndex = start;
     int count = 0;
     for (int i = start + 1; i <= end; i++) {
-        if (strcmp(ptrs[i].ptr, ptrs[pivotIndex].ptr) <= 0)
+        if (strcmp(ptrs[i].get(), ptrs[pivotIndex].get()) <= 0)
             count++;
     }
     pivotIndex = start + count;
@@ -77,10 +81,10 @@ int partition(StringPtr ptrs[], int start, int end)
     int i = start, j = end;
 
     while (i < pivotIndex && j > pivotIndex) {
-        while (strcmp(ptrs[i].ptr, ptrs[pivotIndex].ptr) <= 0) {
+        while (strcmp(ptrs[i].get(), ptrs[pivotIndex].get()) <= 0) {
             i++;
         }
-        while (strcmp(ptrs[j].ptr, ptrs[pivotIndex].ptr) > 0) {
+        while (strcmp(ptrs[j].get(), ptrs[pivotIndex].get()) > 0) {
             j--;
         }
         if (i < pivotIndex && j > pivotIndex) {
@@ -108,8 +112,8 @@ void check_sorting()
 
     quickSort(ptrs, 0, n - 1);
     for (int i = 0; i < n; i++) {
-        check(!ptrs[i].shared, "Sorting algorithm change pointer counter!");
-        check(strcmp(ptrs[i].ptr, sorted[i]) == 0, "Incorrect sorting algorithm");
+        check(!ptrs[i].shared(), "Sorting algorithm change pointer counter!");
+        check(strcmp(ptrs[i].get(), sorted[i]) == 0, "Incorrect sorting algorithm");
     }
 
     std::cout << "\nSorting test passed!";
